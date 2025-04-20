@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"log"
@@ -28,7 +28,7 @@ func loadConfigFile() {
 	}
 }
 
-func Execute() {
+func main() {
 	loadConfigFile()
 
 	app := &cli.App{

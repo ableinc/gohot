@@ -28,7 +28,7 @@ or **clone locally**
 ```bash
 git clone https://github.com/yourname/gohot
 cd gohot
-go build -ldflags="-w -s" -o gohot main.go
+go build -ldflags="-w -s" -o gohot ./cmd/gohot/gohot.go
 ```
 
 ## 🧠 Usage

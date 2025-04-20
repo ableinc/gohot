@@ -1,5 +1,9 @@
-*.yaml
-*.yml
+gohot.yml
+gohot.json
+gohot.toml
 *gohot*
 myapp*
 app*
+!gohot/
+!gohot.go
+!go.yml
