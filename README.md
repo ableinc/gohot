@@ -60,17 +60,17 @@ debounce: 500
 
 **Supported Formats**
 
-    * gohot.yaml
+- gohot.yaml
 
-    * gohot.json
+- gohot.json
 
-    * gohot.toml
+- gohot.toml
 
 Files are loaded automatically from:
 
-    * Current directory
+- Current directory
 
-    * ~/.gohot/gohot.yaml
+- ~/.gohot/gohot.yaml
 
 **CLI flags override config file values.**
 
@@ -95,25 +95,25 @@ gohot --ext .go,.html,.env
 
 Before starting, gohot validates:
 
-    * Watched path exists
+- Watched path exists
 
-    * File extensions start with .
+- File extensions start with .
 
-    * Main file (if set) exists and is a .go file
+- Main file (if set) exists and is a .go file
 
-    * Debounce is positive
+- Debounce is positive
 
-    * Output path is not a directory
+- Output path is not a directory
 
 ## 📋 TODO / Future Ideas
 
-    * --init to create a sample gohot.yaml
+- --init to create a sample gohot.yaml
 
-    * Export merged config with --export
+- Export merged config with --export
 
-    * Logging to .gohot.log
+- Logging to .gohot.log
 
-    * WebSocket/HTTP integration for browser auto-refresh
+- WebSocket/HTTP integration for browser auto-refresh
 
 ## 🧑‍💻 Contributing
 
