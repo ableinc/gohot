@@ -25,10 +25,11 @@ go install github.com/ableinc/gohot@latest
 ```
 
 or **clone locally**
-
+```bash
 git clone https://github.com/yourname/gohot
 cd gohot
-go build -o gohot
+go build -ldflags="-w -s" -o gohot main.go
+```
 
 ## 🧠 Usage
 
@@ -50,10 +51,10 @@ gohot --path ./cmd/api --ext .go,.yaml --entry main.go --out ./build/app
 
 ```yaml
 # gohot.yaml
-path: ./myapp
+path: ./src
 ext: .go,.yaml
 entry: main.go
-out: ./myappbin
+out: ./build/app
 debounce: 500
 ```
 

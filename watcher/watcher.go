@@ -149,7 +149,7 @@ func Start(cfg Config) {
 					}
 				})
 			}
-		case err, ok := <-watcher.Events:
+		case err, ok := <-watcher.Errors:
 			if !ok {
 				return
 			}

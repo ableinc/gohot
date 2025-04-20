@@ -1,2 +1,5 @@
 *.yaml
 *.yml
+*gohot*
+myapp*
+app*
