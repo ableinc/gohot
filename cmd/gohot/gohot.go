@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -10,6 +11,14 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var defaultGohotYml string = `
+path: "./"
+ext: .go,.yaml
+out: ./appb
+entry: ./main.go
+debouce: 500
+`
+
 func loadConfigFile() {
 	viper.SetConfigName("gohot")         // No extension
 	viper.AddConfigPath(".")             // Look in current dir
@@ -18,9 +27,9 @@ func loadConfigFile() {
 
 	viper.SetDefault("path", "./")
 	viper.SetDefault("ext", ".go")
-	viper.SetDefault("out", "./appbin")
-	viper.SetDefault("entry", "")
-	viper.SetDefault("debounce", 300)
+	viper.SetDefault("out", "./appb")
+	viper.SetDefault("entry", "main.go")
+	viper.SetDefault("debounce", 500)
 
 	err := viper.ReadInConfig()
 	if err == nil {
@@ -64,6 +73,25 @@ func main() {
 				Aliases: []string{"d"},
 				Usage:   "Debounce time in milliseconds",
 				Value:   viper.GetInt("debounce"),
+			},
+		},
+		Commands: []*cli.Command{
+			{
+				Name:    "init",
+				Aliases: []string{"i"},
+				Usage:   "create default gohot.yaml file",
+				Action: func(ctx *cli.Context) error {
+					_, err := os.Stat("./gohot.yaml")
+					if err != nil {
+						err = os.WriteFile("./gohot.yaml", []byte(defaultGohotYml), 0644)
+						if err != nil {
+							return err
+						}
+						return nil
+					}
+					fmt.Fprintf(os.Stderr, "File already exists: %s\n", viper.ConfigFileUsed())
+					return nil
+				},
 			},
 		},
 		Action: func(c *cli.Context) error {

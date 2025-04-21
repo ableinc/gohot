@@ -41,20 +41,20 @@ gohot --path ./cmd/api --ext .go,.yaml --entry main.go --out ./build/app
 | Flag          | Alias | Description                  | Default |
 | ------------- | ----- | -----------------------------| ------- |
 | --path        | -p    | Directory to watch           | ./      |
-| --ext         | -e    | File extensions to watch (comma-separated) | .go |
+| --ext         | -e    | File extensions to watch (comma-separated) | .go,.yaml |
 | --entry       | -m    | Main Go file to run          | (auto-detect) |
-| --out         | -o    | Output binary name/path      | ./appbin |
-| --debounce    | -d    | Debounce time in ms          | 300 |
+| --out         | -o    | Output binary name/path      | ./appb |
+| --debounce    | -d    | Debounce time in ms          | 500 |
 
 
 ## ⚙️ Configuration File (gohot.yaml)
 
 ```yaml
 # gohot.yaml
-path: ./src
+path: ./
 ext: .go,.yaml
 entry: main.go
-out: ./build/app
+out: ./appb
 debounce: 500
 ```
 
