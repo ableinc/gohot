@@ -27,4 +27,4 @@ jobs:
         run: go test ./tests
 
       - name: Run build
-        run: go build -ldflags="-w -s" -o gohot ./cmd/gohot/gohot.go
+        run: go build -ldflags="-w -s" -o gohot ./gohot.go
