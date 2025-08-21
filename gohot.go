@@ -20,6 +20,8 @@ entry: ./main.go
 debounce: 500
 `
 
+var APP_VERSION string = "0.1.4"
+
 func loadConfigFile() {
 	viper.SetConfigName("gohot")         // No extension
 	viper.AddConfigPath(".")             // Look in current dir
@@ -97,6 +99,15 @@ func main() {
 						return nil
 					}
 					fmt.Fprintf(os.Stderr, "File already exists: %s\n", viper.ConfigFileUsed())
+					return nil
+				},
+			},
+			{
+				Name:    "version",
+				Aliases: []string{"v"},
+				Usage:   "Print the version number",
+				Action: func(c *cli.Context) error {
+					fmt.Printf("gohot version %s\n", APP_VERSION)
 					return nil
 				},
 			},

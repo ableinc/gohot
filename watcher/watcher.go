@@ -71,7 +71,6 @@ func addWatchers(watcher *fsnotify.Watcher, root string, ignores []string) error
 		}
 
 		if d.IsDir() && !strings.HasPrefix(d.Name(), ".") {
-			log.Printf("Watching directory: %s\n", path)
 			return watcher.Add(path)
 		}
 		return nil
