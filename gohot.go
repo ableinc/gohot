@@ -103,9 +103,8 @@ func main() {
 				},
 			},
 			{
-				Name:    "version",
-				Aliases: []string{"v"},
-				Usage:   "Print the version number",
+				Name:  "version",
+				Usage: "Print the version number",
 				Action: func(c *cli.Context) error {
 					fmt.Printf("gohot version %s\n", APP_VERSION)
 					return nil

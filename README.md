@@ -42,6 +42,7 @@ USAGE:
 
 COMMANDS:
    init, i  create default gohot.yaml file
+   version  Print the version number
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
@@ -51,7 +52,7 @@ GLOBAL OPTIONS:
    --out value, -o value       Output binary name when compiling (default: "./appb")
    --entry value, -m value     Main Go file entry point (default: "./main.go")
    --debounce value, -d value  Debounce time in milliseconds (default: 500)
-   --help, -h 
+   --help, -h                  show help
 ```
 
 ## ⚙️ Configuration File (gohot.yaml)
