@@ -14,9 +14,10 @@ import (
 var defaultGohotYml string = `
 path: "./"
 ext: .go,.yaml
+ignore: .git,vendor
 out: ./appb
 entry: ./main.go
-debouce: 500
+debounce: 500
 `
 
 func loadConfigFile() {
@@ -27,6 +28,7 @@ func loadConfigFile() {
 
 	viper.SetDefault("path", "./")
 	viper.SetDefault("ext", ".go")
+	viper.SetDefault("ignore", ".git,vendor")
 	viper.SetDefault("out", "./appb")
 	viper.SetDefault("entry", "main.go")
 	viper.SetDefault("debounce", 500)
@@ -55,6 +57,11 @@ func main() {
 				Aliases: []string{"e"},
 				Usage:   "File extension to watch (comma-separated)",
 				Value:   viper.GetString("ext"),
+			},
+			&cli.StringFlag{
+				Name:  "ignore",
+				Usage: "File paths to ignore (comma-separated)",
+				Value: viper.GetString("ignore"),
 			},
 			&cli.StringFlag{
 				Name:    "out",
@@ -98,6 +105,7 @@ func main() {
 			config := watcher.Config{
 				Path:       c.String("path"),
 				Extensions: c.String("ext"),
+				Ignore:     c.String("ignore"),
 				Output:     c.String("out"),
 				MainFile:   c.String("entry"),
 				Debounce:   time.Duration(c.Int("debounce")) * time.Millisecond,

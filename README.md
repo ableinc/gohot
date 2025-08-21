@@ -11,7 +11,7 @@ Ideal for fast development cycles in the Go ecosystem — no more manual builds 
 - 🔁 Auto-reload on `.go` file changes (or any extension)
 - 📂 Directory and file extension filtering
 - 🧠 Smart CPU usage: uses `go run` or compiles to binary based on your system
-- ⚙️ Config file support (`gohot.yaml`, `gohot.json`, etc.)
+- ⚙️ Config file support (`gohot.yaml`)
 - ✅ Config validation before execution
 - ⏱️ Debounce file system events to avoid noisy reloads
 - 🎯 Cross-platform (Linux, macOS, Windows)
@@ -28,25 +28,31 @@ or **clone locally**
 ```bash
 git clone https://github.com/yourname/gohot
 cd gohot
-go build -ldflags="-w -s" -o gohot ./cmd/gohot/gohot.go
+go build -ldflags="-w -s" -o gohot ./gohot.go
 ```
 
 ## 🧠 Usage
 
 ```bash
-gohot --path ./cmd/api --ext .go,.yaml --entry main.go --out ./build/app
+NAME:
+   gohot - Auto-reload Go apps when source files change
+
+USAGE:
+   gohot [global options] command [command options]
+
+COMMANDS:
+   init, i  create default gohot.yaml file
+   help, h  Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --path value, -p value      Directory to watch (default: "./")
+   --ext value, -e value       File extension to watch (comma-separated) (default: ".go,.yaml")
+   --ignore value              File paths to ignore (comma-separated) (default: ".git,vendor")
+   --out value, -o value       Output binary name when compiling (default: "./appb")
+   --entry value, -m value     Main Go file entry point (default: "./main.go")
+   --debounce value, -d value  Debounce time in milliseconds (default: 500)
+   --help, -h 
 ```
-
-
-| Flag/Command  | Alias | Description                  | Default |
-| ------------- | ----- | -----------------------------| ------- |
-| --path        | -p    | Directory to watch           | ./      |
-| --ext         | -e    | File extensions to watch (comma-separated) | .go,.yaml |
-| --entry       | -m    | Main Go file to run          | (auto-detect) |
-| --out         | -o    | Output binary name/path      | ./appb |
-| --debounce    | -d    | Debounce time in ms          | 500 |
-| init          | i     | create gohot.yaml file       |        |
-
 
 ## ⚙️ Configuration File (gohot.yaml)
 
@@ -62,10 +68,6 @@ debounce: 500
 **Supported Formats**
 
 - gohot.yaml
-
-- gohot.json
-
-- gohot.toml
 
 Files are loaded automatically from:
 
@@ -105,16 +107,6 @@ Before starting, gohot validates:
 - Debounce is positive
 
 - Output path is not a directory
-
-## 📋 TODO / Future Ideas
-
-- --init to create a sample gohot.yaml
-
-- Export merged config with --export
-
-- Logging to .gohot.log
-
-- WebSocket/HTTP integration for browser auto-refresh
 
 ## 🧑‍💻 Contributing
 

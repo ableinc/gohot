@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +18,7 @@ import (
 type Config struct {
 	Path       string
 	Extensions string
+	Ignore     string
 	Output     string
 	MainFile   string
 	Debounce   time.Duration
@@ -29,7 +31,7 @@ var (
 
 func splitExts(ext string) []string {
 	var exts []string
-	for _, e := range strings.Split(ext, ",") {
+	for e := range strings.SplitSeq(ext, ",") {
 		exts = append(exts, strings.TrimSpace(e))
 	}
 	return exts
@@ -52,12 +54,24 @@ func findMain(path string) (string, error) {
 	return "", fmt.Errorf("main.go not found in %s", path)
 }
 
-func addWatchers(watcher *fsnotify.Watcher, root string) error {
+func addWatchers(watcher *fsnotify.Watcher, root string, ignores []string) error {
 	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() && !strings.HasPrefix(d.Name(), ".") && d.Name() != "vendor" {
+
+		// Check if current path should be ignored
+		if slices.Contains(ignores, path) || slices.Contains(ignores, d.Name()) {
+			if d.IsDir() {
+				// Skip the entire directory and its contents
+				return filepath.SkipDir
+			}
+			// Skip just this file, continue with directory traversal
+			return nil
+		}
+
+		if d.IsDir() && !strings.HasPrefix(d.Name(), ".") {
+			log.Printf("Watching directory: %s\n", path)
 			return watcher.Add(path)
 		}
 		return nil
@@ -115,6 +129,7 @@ func Start(cfg Config) {
 	}
 	defer watcher.Close()
 	exts := splitExts(cfg.Extensions)
+	ignores := splitExts(cfg.Ignore)
 	mainFile := cfg.MainFile
 	if mainFile == "" {
 		mainFile, err = findMain(cfg.Path)
@@ -122,7 +137,7 @@ func Start(cfg Config) {
 			log.Fatal("cannot locate main file:", err)
 		}
 	}
-	err = addWatchers(watcher, cfg.Path)
+	err = addWatchers(watcher, cfg.Path, ignores)
 	if err != nil {
 		log.Fatal(err)
 	}
