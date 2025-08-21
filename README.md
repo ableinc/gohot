@@ -61,6 +61,7 @@ GLOBAL OPTIONS:
 # gohot.yaml
 path: ./
 ext: .go,.yaml
+ignore: .git,vendor
 entry: main.go
 out: ./appb
 debounce: 500
@@ -69,6 +70,8 @@ debounce: 500
 **Supported Formats**
 
 - gohot.yaml
+
+- gohot.yml
 
 Files are loaded automatically from:
 
