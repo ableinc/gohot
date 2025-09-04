@@ -1,7 +1,9 @@
 package watcher
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -22,11 +24,14 @@ type Config struct {
 	Output     string
 	MainFile   string
 	Debounce   time.Duration
+	Args       []string
 }
 
 var (
-	cmd     *exec.Cmd
-	cmdLock sync.Mutex
+	cmd         *exec.Cmd
+	cmdLock     sync.Mutex
+	stdoutMulti io.Writer
+	stderrMulti io.Writer
 )
 
 func splitExts(ext string) []string {
@@ -77,11 +82,12 @@ func addWatchers(watcher *fsnotify.Watcher, root string, ignores []string) error
 	})
 }
 
-func runCommand(name string, args ...string) *exec.Cmd {
+func runCommand(name string, goArgs []string, args ...string) *exec.Cmd {
 	c := exec.Command(name, args...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	c.Stdin = os.Stdin
+	setEnvs(goArgs, c)
 	err := c.Start()
 	if err != nil {
 		log.Fatalf("error starting command: %v", err)
@@ -98,26 +104,39 @@ func stopProcess() {
 	}
 }
 
+func setEnvs(goArgs []string, cmd *exec.Cmd) {
+	cmd.Env = append(os.Environ(), goArgs...)
+}
+
 func startProcess(cfg Config, mainFile string) {
 	cmdLock.Lock()
 	defer cmdLock.Unlock()
 
 	if runtime.NumCPU() >= 4 {
 		log.Println("Compiling binary...")
+		var buildOutput bytes.Buffer
+		stdoutMulti = io.MultiWriter(os.Stdout, &buildOutput)
+		stderrMulti = io.MultiWriter(os.Stderr, &buildOutput)
 		build := exec.Command("go", "build", "-o", cfg.Output, mainFile)
-		build.Stdout = os.Stdout
-		build.Stderr = os.Stderr
+		build.Stdout = stdoutMulti
+		build.Stderr = stderrMulti
+		setEnvs(cfg.Args, build)
 		err := build.Run()
 		if err != nil {
 			log.Println("Build failed. Falling back to go run...")
-			cmd = runCommand("go", "run", mainFile)
+			log.Printf("Build output:\n%v\n", buildOutput.String())
+			if strings.Contains(buildOutput.String(), "go : unknown command") {
+				log.Println("Detected unknown command error in build output. Stopping process.")
+				os.Exit(1)
+			}
+			cmd = runCommand("go", cfg.Args, "run", mainFile)
 		} else {
 			log.Println("Build succeeded. Running binary...")
-			cmd = runCommand(cfg.Output)
+			cmd = runCommand(cfg.Output, cfg.Args)
 		}
 	} else {
 		log.Println("Low CPU system. Running with go run...")
-		cmd = runCommand("go", "run", mainFile)
+		cmd = runCommand("go", cfg.Args, "run", mainFile)
 	}
 }
 

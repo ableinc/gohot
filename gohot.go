@@ -11,22 +11,22 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var defaultGohotYml string = `
-path: "./"
+var defaultGohotYml string = `path: "./"
 ext: .go,.yaml
 ignore: .git,vendor
 out: ./appb
-entry: ./main.go
+entry: main.go
 debounce: 500
+args:
 `
 
-var APP_VERSION string = "0.1.4"
+var APP_VERSION string = "0.1.5"
 
 func loadConfigFile() {
 	viper.SetConfigName("gohot")         // No extension
 	viper.AddConfigPath(".")             // Look in current dir
 	viper.AddConfigPath("$HOME/.gohot/") // Also support home config
-	viper.SetConfigType("yaml")          // Default to YAML
+	viper.SetConfigType("yaml")
 
 	viper.SetDefault("path", "./")
 	viper.SetDefault("ext", ".go")
@@ -34,11 +34,13 @@ func loadConfigFile() {
 	viper.SetDefault("out", "./appb")
 	viper.SetDefault("entry", "main.go")
 	viper.SetDefault("debounce", 500)
+	viper.SetDefault("args", []string{""})
 
 	err := viper.ReadInConfig()
-	if err == nil {
-		log.Println("Loaded config:", viper.ConfigFileUsed())
+	if err != nil {
+		panic(fmt.Errorf("fatal error config file: %v", err))
 	}
+	log.Println("Loaded config:", viper.ConfigFileUsed())
 }
 
 func main() {
@@ -83,6 +85,12 @@ func main() {
 				Usage:   "Debounce time in milliseconds",
 				Value:   viper.GetInt("debounce"),
 			},
+			&cli.StringSliceFlag{
+				Name:    "args",
+				Aliases: []string{"a"},
+				Usage:   "Arguments to pass to go build or go run",
+				Value:   cli.NewStringSlice(viper.GetStringSlice("args")...),
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -90,12 +98,14 @@ func main() {
 				Aliases: []string{"i"},
 				Usage:   "create default gohot.yaml file",
 				Action: func(ctx *cli.Context) error {
+					_, ymlErr := os.Stat("./gohot.yml")
 					_, err := os.Stat("./gohot.yaml")
-					if err != nil {
+					if err != nil && ymlErr != nil {
 						err = os.WriteFile("./gohot.yaml", []byte(defaultGohotYml), 0644)
 						if err != nil {
 							return err
 						}
+						fmt.Fprintf(os.Stdout, "Created default config: %s\n", viper.ConfigFileUsed())
 						return nil
 					}
 					fmt.Fprintf(os.Stderr, "File already exists: %s\n", viper.ConfigFileUsed())
@@ -119,6 +129,7 @@ func main() {
 				Output:     c.String("out"),
 				MainFile:   c.String("entry"),
 				Debounce:   time.Duration(c.Int("debounce")) * time.Millisecond,
+				Args:       c.StringSlice("args"),
 			}
 
 			if err := watcher.ValidateConfig(config); err != nil {
@@ -129,7 +140,6 @@ func main() {
 			return nil
 		},
 	}
-
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}

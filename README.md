@@ -46,13 +46,14 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --path value, -p value      Directory to watch (default: "./")
-   --ext value, -e value       File extension to watch (comma-separated) (default: ".go,.yaml")
-   --ignore value              File paths to ignore (comma-separated) (default: ".git,vendor")
-   --out value, -o value       Output binary name when compiling (default: "./appb")
-   --entry value, -m value     Main Go file entry point (default: "./main.go")
-   --debounce value, -d value  Debounce time in milliseconds (default: 500)
-   --help, -h                  show help
+   --path value, -p value                             Directory to watch (default: "./")
+   --ext value, -e value                              File extension to watch (comma-separated) (default: ".go,.yaml")
+   --ignore value                                     File paths to ignore (comma-separated) (default: ".git,vendor")
+   --out value, -o value                              Output binary name when compiling (default: "./appb")
+   --entry value, -m value                            Main Go file entry point (default: "gohot.go")
+   --debounce value, -d value                         Debounce time in milliseconds (default: 500)
+   --args value, -a value [ --args value, -a value ]  Arguments to pass to go build or go run (default: "GOEXPERIMENT=jsonv2")
+   --help, -h                                         show help
 ```
 
 ## ⚙️ Configuration File (gohot.yaml)
@@ -65,6 +66,8 @@ ignore: .git,vendor
 entry: main.go
 out: ./appb
 debounce: 500
+args:
+   - GOEXPERIMENT=jsonv2
 ```
 
 **Supported Formats**
