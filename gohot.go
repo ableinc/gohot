@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/ableinc/gohot/watcher"
@@ -16,13 +18,16 @@ ext: .go,.yaml
 ignore: .git,vendor
 out: ./appb
 entry: main.go
-debounce: 500
+debounce: 1000
 args:
+ -
+flags:
+ -
 `
 
-var APP_VERSION string = "0.1.5"
+var APP_VERSION string = "0.1.6"
 
-func loadConfigFile() {
+func loadConfigFile(readConfig bool) {
 	viper.SetConfigName("gohot")         // No extension
 	viper.AddConfigPath(".")             // Look in current dir
 	viper.AddConfigPath("$HOME/.gohot/") // Also support home config
@@ -33,9 +38,12 @@ func loadConfigFile() {
 	viper.SetDefault("ignore", ".git,vendor")
 	viper.SetDefault("out", "./appb")
 	viper.SetDefault("entry", "main.go")
-	viper.SetDefault("debounce", 500)
+	viper.SetDefault("debounce", 1000)
 	viper.SetDefault("args", []string{""})
-
+	viper.SetDefault("flags", "")
+	if !readConfig {
+		return
+	}
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("fatal error config file: %v", err))
@@ -43,8 +51,35 @@ func loadConfigFile() {
 	log.Println("Loaded config:", viper.ConfigFileUsed())
 }
 
+func getConfigFilePath() string {
+	if _, err := os.Stat("./gohot.yaml"); err == nil {
+		fp, _ := filepath.Abs("./gohot.yaml")
+		return fp
+	}
+	if _, err := os.Stat("./gohot.yml"); err == nil {
+		fp, _ := filepath.Abs("./gohot.yml")
+		return fp
+	}
+	home, err := os.UserHomeDir()
+	if err == nil {
+		if _, err := os.Stat(path.Join(home, ".gohot", "gohot.yaml")); err == nil {
+			fp, _ := filepath.Abs(path.Join(home, ".gohot", "gohot.yaml"))
+			return fp
+		}
+		if _, err := os.Stat(path.Join(home, ".gohot", "gohot.yml")); err == nil {
+			fp, _ := filepath.Abs(path.Join(home, ".gohot", "gohot.yml"))
+			return fp
+		}
+	}
+	return ""
+}
+
 func main() {
-	loadConfigFile()
+	if len(os.Args) < 2 {
+		loadConfigFile(true)
+	} else {
+		loadConfigFile(os.Args[1] != "init" && os.Args[1] != "i" && os.Args[1] != "--help" && os.Args[1] != "-h" && os.Args[1] != "version")
+	}
 
 	app := &cli.App{
 		Name:  "gohot",
@@ -91,6 +126,12 @@ func main() {
 				Usage:   "Arguments to pass to go build or go run",
 				Value:   cli.NewStringSlice(viper.GetStringSlice("args")...),
 			},
+			&cli.StringFlag{
+				Name:    "flags",
+				Aliases: []string{"f"},
+				Usage:   "Build flags to pass to go build",
+				Value:   viper.GetString("flags"),
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -105,10 +146,10 @@ func main() {
 						if err != nil {
 							return err
 						}
-						fmt.Fprintf(os.Stdout, "Created default config: %s\n", viper.ConfigFileUsed())
+						fmt.Fprintf(os.Stdout, "Created default config: %s\n", getConfigFilePath())
 						return nil
 					}
-					fmt.Fprintf(os.Stderr, "File already exists: %s\n", viper.ConfigFileUsed())
+					fmt.Fprintf(os.Stderr, "File already exists: %s\n", getConfigFilePath())
 					return nil
 				},
 			},
@@ -130,6 +171,7 @@ func main() {
 				MainFile:   c.String("entry"),
 				Debounce:   time.Duration(c.Int("debounce")) * time.Millisecond,
 				Args:       c.StringSlice("args"),
+				Flags:      c.String("flags"),
 			}
 
 			if err := watcher.ValidateConfig(config); err != nil {

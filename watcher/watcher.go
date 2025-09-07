@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/google/shlex"
 )
 
 type Config struct {
@@ -25,6 +26,7 @@ type Config struct {
 	MainFile   string
 	Debounce   time.Duration
 	Args       []string
+	Flags      string
 }
 
 var (
@@ -57,6 +59,15 @@ func findMain(path string) (string, error) {
 		return mainFile, nil
 	}
 	return "", fmt.Errorf("main.go not found in %s", path)
+}
+
+func parseFlags(flagsStr string) []string {
+	args, err := shlex.Split(flagsStr)
+	if err != nil {
+		log.Printf("Error parsing flags: %v", err)
+		return []string{}
+	}
+	return args
 }
 
 func addWatchers(watcher *fsnotify.Watcher, root string, ignores []string) error {
@@ -108,6 +119,26 @@ func setEnvs(goArgs []string, cmd *exec.Cmd) {
 	cmd.Env = append(os.Environ(), goArgs...)
 }
 
+func buildCommandArgs(cfg Config, mainFile string) []string {
+	args := []string{"build"}
+	if cfg.Flags != "" {
+		parsedFlags := parseFlags(cfg.Flags)
+		args = append(args, parsedFlags...)
+	}
+	args = append(args, "-o", cfg.Output, mainFile)
+	return args
+}
+
+func runCommandArgs(cfg Config, mainFile string) []string {
+	args := []string{"run"}
+	if cfg.Flags != "" {
+		parsedFlags := parseFlags(cfg.Flags)
+		args = append(args, parsedFlags...)
+	}
+	args = append(args, mainFile)
+	return args
+}
+
 func startProcess(cfg Config, mainFile string) {
 	cmdLock.Lock()
 	defer cmdLock.Unlock()
@@ -117,7 +148,7 @@ func startProcess(cfg Config, mainFile string) {
 		var buildOutput bytes.Buffer
 		stdoutMulti = io.MultiWriter(os.Stdout, &buildOutput)
 		stderrMulti = io.MultiWriter(os.Stderr, &buildOutput)
-		build := exec.Command("go", "build", "-o", cfg.Output, mainFile)
+		build := exec.Command("go", buildCommandArgs(cfg, mainFile)...)
 		build.Stdout = stdoutMulti
 		build.Stderr = stderrMulti
 		setEnvs(cfg.Args, build)
@@ -129,14 +160,14 @@ func startProcess(cfg Config, mainFile string) {
 				log.Println("Detected unknown command error in build output. Stopping process.")
 				os.Exit(1)
 			}
-			cmd = runCommand("go", cfg.Args, "run", mainFile)
+			cmd = runCommand("go", cfg.Args, runCommandArgs(cfg, mainFile)...)
 		} else {
 			log.Println("Build succeeded. Running binary...")
 			cmd = runCommand(cfg.Output, cfg.Args)
 		}
 	} else {
 		log.Println("Low CPU system. Running with go run...")
-		cmd = runCommand("go", cfg.Args, "run", mainFile)
+		cmd = runCommand("go", cfg.Args, runCommandArgs(cfg, mainFile)...)
 	}
 }
 

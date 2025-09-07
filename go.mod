@@ -4,6 +4,7 @@ go 1.24
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/spf13/viper v1.20.1
 	github.com/urfave/cli/v2 v2.27.6
 )

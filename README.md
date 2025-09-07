@@ -47,12 +47,13 @@ COMMANDS:
 
 GLOBAL OPTIONS:
    --path value, -p value                             Directory to watch (default: "./")
-   --ext value, -e value                              File extension to watch (comma-separated) (default: ".go,.yaml")
+   --ext value, -e value                              File extension to watch (comma-separated) (default: ".go")
    --ignore value                                     File paths to ignore (comma-separated) (default: ".git,vendor")
    --out value, -o value                              Output binary name when compiling (default: "./appb")
-   --entry value, -m value                            Main Go file entry point (default: "gohot.go")
-   --debounce value, -d value                         Debounce time in milliseconds (default: 500)
-   --args value, -a value [ --args value, -a value ]  Arguments to pass to go build or go run (default: "GOEXPERIMENT=jsonv2")
+   --entry value, -m value                            Main Go file entry point (default: "main.go")
+   --debounce value, -d value                         Debounce time in milliseconds (default: 1000)
+   --args value, -a value [ --args value, -a value ]  Arguments to pass to go build or go run
+   --flags value, -f value                            Build flags to pass to go build
    --help, -h                                         show help
 ```
 
@@ -68,6 +69,8 @@ out: ./appb
 debounce: 500
 args:
    - GOEXPERIMENT=jsonv2
+flags:
+   - ldflags="-w -s"
 ```
 
 **Supported Formats**
