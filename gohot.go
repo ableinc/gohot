@@ -101,13 +101,13 @@ func main() {
 			&cli.StringSliceFlag{
 				Name:    "ext",
 				Aliases: []string{"e"},
-				Usage:   "File extension to watch (comma-separated)",
+				Usage:   "File extension to watch",
 				Value:   cli.NewStringSlice(viper.GetStringSlice("ext")...),
 			},
 			&cli.StringSliceFlag{
 				Name:    "ignore",
 				Aliases: []string{"i"},
-				Usage:   "File paths to ignore (comma-separated)",
+				Usage:   "File paths to ignore",
 				Value:   cli.NewStringSlice(viper.GetStringSlice("ignore")...),
 			},
 			&cli.StringFlag{

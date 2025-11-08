@@ -47,8 +47,8 @@ COMMANDS:
 
 GLOBAL OPTIONS:
    --path value, -p value                                 Directory to watch (default: "./")
-   --ext value, -e value [ --ext value, -e value ]        File extension to watch (comma-separated) (default: ".go & .yaml")
-   --ignore value, -i value [ --ignore value, -i value ]  File paths to ignore (comma-separated) (default: ".git & vendor")
+   --ext value, -e value [ --ext value, -e value ]        File extension to watch (default: ".go & .yaml")
+   --ignore value, -i value [ --ignore value, -i value ]  File paths to ignore (default: ".git & vendor")
    --out value, -o value                                  Output binary name when compiling (default: "./appb")
    --entry value, -m value                                Main Go file entry point (default: "main.go")
    --debounce value, -d value                             Debounce time in milliseconds (default: 500)
