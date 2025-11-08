@@ -24,7 +24,7 @@ jobs:
         run: go mod tidy
 
       - name: Run Go unit tests
-        run: go test ./tests
+        run: go test ./watcher
 
       - name: Run build
         run: go build -ldflags="-w -s" -o gohot ./gohot.go
