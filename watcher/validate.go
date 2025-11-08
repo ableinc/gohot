@@ -13,15 +13,13 @@ func ValidateConfig(cfg Config) error {
 	if err != nil || !info.IsDir() {
 		return fmt.Errorf("invalid watch path: %s", cfg.Path)
 	}
-
 	// Validate extensions
-	exts := strings.Split(cfg.Extensions, ",")
-	if len(exts) == 0 {
+	if len(cfg.Extensions) == 0 {
 		return errors.New("no file extensions specified")
 	}
-	for _, ext := range exts {
-		if !strings.HasPrefix(strings.TrimSpace(ext), ".") {
-			return fmt.Errorf("invalid extension format: %s (must start with a dot)", ext)
+	for i := range cfg.Extensions {
+		if !strings.HasPrefix(strings.TrimSpace(cfg.Extensions[i]), ".") {
+			return fmt.Errorf("invalid extension format: %s (must start with a dot)", cfg.Extensions[i])
 		}
 	}
 

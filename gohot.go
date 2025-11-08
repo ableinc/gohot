@@ -14,18 +14,24 @@ import (
 )
 
 var defaultGohotYml string = `path: "./"
-ext: .go,.yaml
-ignore: .git,vendor
+ext:
+ - .go
+ - .yaml
+ignore:
+ - .git
+ - vendor
 out: ./appb
 entry: main.go
-debounce: 1000
-args:
+debounce: 500
+envs:
  -
 flags:
  -
+cli:
+ -
 `
 
-var APP_VERSION string = "0.1.6"
+var APP_VERSION string = "1.0.0"
 
 func loadConfigFile(readConfig bool) {
 	viper.SetConfigName("gohot")         // No extension
@@ -34,19 +40,20 @@ func loadConfigFile(readConfig bool) {
 	viper.SetConfigType("yaml")
 
 	viper.SetDefault("path", "./")
-	viper.SetDefault("ext", ".go")
-	viper.SetDefault("ignore", ".git,vendor")
+	viper.SetDefault("ext", []string{".go", ".yaml"})
+	viper.SetDefault("ignore", []string{".git", "vendor"})
 	viper.SetDefault("out", "./appb")
 	viper.SetDefault("entry", "main.go")
 	viper.SetDefault("debounce", 1000)
-	viper.SetDefault("args", []string{""})
-	viper.SetDefault("flags", "")
+	viper.SetDefault("envs", []string{""})
+	viper.SetDefault("flags", []string{""})
+	viper.SetDefault("cli", []string{""})
 	if !readConfig {
 		return
 	}
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("fatal error config file: %v", err))
+		log.Fatalf("error: %v", err)
 	}
 	log.Println("Loaded config:", viper.ConfigFileUsed())
 }
@@ -91,16 +98,17 @@ func main() {
 				Usage:   "Directory to watch",
 				Value:   viper.GetString("path"),
 			},
-			&cli.StringFlag{
+			&cli.StringSliceFlag{
 				Name:    "ext",
 				Aliases: []string{"e"},
 				Usage:   "File extension to watch (comma-separated)",
-				Value:   viper.GetString("ext"),
+				Value:   cli.NewStringSlice(viper.GetStringSlice("ext")...),
 			},
-			&cli.StringFlag{
-				Name:  "ignore",
-				Usage: "File paths to ignore (comma-separated)",
-				Value: viper.GetString("ignore"),
+			&cli.StringSliceFlag{
+				Name:    "ignore",
+				Aliases: []string{"i"},
+				Usage:   "File paths to ignore (comma-separated)",
+				Value:   cli.NewStringSlice(viper.GetStringSlice("ignore")...),
 			},
 			&cli.StringFlag{
 				Name:    "out",
@@ -121,16 +129,22 @@ func main() {
 				Value:   viper.GetInt("debounce"),
 			},
 			&cli.StringSliceFlag{
-				Name:    "args",
-				Aliases: []string{"a"},
-				Usage:   "Arguments to pass to go build or go run",
-				Value:   cli.NewStringSlice(viper.GetStringSlice("args")...),
+				Name:    "envs",
+				Aliases: []string{"v"},
+				Usage:   "Environment variables to set before go build or go run",
+				Value:   cli.NewStringSlice(viper.GetStringSlice("envs")...),
 			},
-			&cli.StringFlag{
+			&cli.StringSliceFlag{
 				Name:    "flags",
 				Aliases: []string{"f"},
 				Usage:   "Build flags to pass to go build",
-				Value:   viper.GetString("flags"),
+				Value:   cli.NewStringSlice(viper.GetStringSlice("flags")...),
+			},
+			&cli.StringSliceFlag{
+				Name:    "cli",
+				Aliases: []string{"c"},
+				Usage:   "CLI arguments to pass to the compiled binary",
+				Value:   cli.NewStringSlice(viper.GetStringSlice("cli")...),
 			},
 		},
 		Commands: []*cli.Command{
@@ -165,13 +179,14 @@ func main() {
 		Action: func(c *cli.Context) error {
 			config := watcher.Config{
 				Path:       c.String("path"),
-				Extensions: c.String("ext"),
-				Ignore:     c.String("ignore"),
+				Extensions: c.StringSlice("ext"),
+				Ignore:     c.StringSlice("ignore"),
 				Output:     c.String("out"),
 				MainFile:   c.String("entry"),
 				Debounce:   time.Duration(c.Int("debounce")) * time.Millisecond,
-				Args:       c.StringSlice("args"),
-				Flags:      c.String("flags"),
+				Envs:       c.StringSlice("envs"),
+				Flags:      c.StringSlice("flags"),
+				Cli:        c.StringSlice("cli"),
 			}
 
 			if err := watcher.ValidateConfig(config); err != nil {

@@ -46,31 +46,38 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --path value, -p value                             Directory to watch (default: "./")
-   --ext value, -e value                              File extension to watch (comma-separated) (default: ".go")
-   --ignore value                                     File paths to ignore (comma-separated) (default: ".git,vendor")
-   --out value, -o value                              Output binary name when compiling (default: "./appb")
-   --entry value, -m value                            Main Go file entry point (default: "main.go")
-   --debounce value, -d value                         Debounce time in milliseconds (default: 1000)
-   --args value, -a value [ --args value, -a value ]  Arguments to pass to go build or go run
-   --flags value, -f value                            Build flags to pass to go build
-   --help, -h                                         show help
+   --path value, -p value                                 Directory to watch (default: "./")
+   --ext value, -e value [ --ext value, -e value ]        File extension to watch (comma-separated) (default: ".go & .yaml")
+   --ignore value, -i value [ --ignore value, -i value ]  File paths to ignore (comma-separated) (default: ".git & vendor")
+   --out value, -o value                                  Output binary name when compiling (default: "./appb")
+   --entry value, -m value                                Main Go file entry point (default: "main.go")
+   --debounce value, -d value                             Debounce time in milliseconds (default: 500)
+   --envs value, -v value [ --envs value, -v value ]      Environment variables to set before go build or go run )
+   --flags value, -f value [ --flags value, -f value ]    Build flags to pass to go build
+   --cli value, -c value [ --cli value, -c value ]        CLI arguments to pass to the compiled binary
+   --help, -h                                             show help
 ```
 
-## ⚙️ Configuration File (gohot.yaml)
+## ⚙️ Example Configuration File (gohot.yaml)
 
 ```yaml
 # gohot.yaml
 path: ./
-ext: .go,.yaml
-ignore: .git,vendor
+ext:
+  - .go
+  - .yaml
+ignore:
+  - .git
+  - vendor
 entry: main.go
 out: ./appb
 debounce: 500
-args:
-   - GOEXPERIMENT=jsonv2
+envs:
+  - GOEXPERIMENT=jsonv2
 flags:
-   - ldflags="-w -s"
+  - ldflags="-w -s"
+cli:
+  - verbose
 ```
 
 **Supported Formats**

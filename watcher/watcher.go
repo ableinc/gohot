@@ -20,13 +20,14 @@ import (
 
 type Config struct {
 	Path       string
-	Extensions string
-	Ignore     string
+	Extensions []string
+	Ignore     []string
 	Output     string
 	MainFile   string
 	Debounce   time.Duration
-	Args       []string
-	Flags      string
+	Envs       []string
+	Flags      []string
+	Cli        []string
 }
 
 var (
@@ -35,14 +36,6 @@ var (
 	stdoutMulti io.Writer
 	stderrMulti io.Writer
 )
-
-func splitExts(ext string) []string {
-	var exts []string
-	for e := range strings.SplitSeq(ext, ",") {
-		exts = append(exts, strings.TrimSpace(e))
-	}
-	return exts
-}
 
 func isValidExt(file string, exts []string) bool {
 	for _, ext := range exts {
@@ -61,7 +54,7 @@ func findMain(path string) (string, error) {
 	return "", fmt.Errorf("main.go not found in %s", path)
 }
 
-func parseFlags(flagsStr string) []string {
+func parseFlag(flagsStr string) []string {
 	args, err := shlex.Split(flagsStr)
 	if err != nil {
 		log.Printf("Error parsing flags: %v", err)
@@ -93,17 +86,30 @@ func addWatchers(watcher *fsnotify.Watcher, root string, ignores []string) error
 	})
 }
 
-func runCommand(name string, goArgs []string, args ...string) *exec.Cmd {
+func executeCommand(name string, cfg Config, args ...string) *exec.Cmd {
+	fmt.Printf("Executing command: %s %s\n", name, strings.Join(args, " "))
 	c := exec.Command(name, args...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	c.Stdin = os.Stdin
-	setEnvs(goArgs, c)
+	setEnvs(cfg.Envs, c)
 	err := c.Start()
 	if err != nil {
 		log.Fatalf("error starting command: %v", err)
 	}
 	return c
+}
+
+func buildCommand(cfg Config, mainFile string) (*exec.Cmd, bytes.Buffer) {
+	var buildOutput bytes.Buffer
+	stdoutMulti = io.MultiWriter(os.Stdout, &buildOutput)
+	stderrMulti = io.MultiWriter(os.Stderr, &buildOutput)
+	build := exec.Command("go", buildCommandArgs(cfg, mainFile)...)
+	build.Stdout = stdoutMulti
+	build.Stderr = stderrMulti
+	// Set environment variables at the build stage as well
+	setEnvs(cfg.Envs, build)
+	return build, buildOutput
 }
 
 func stopProcess() {
@@ -121,21 +127,33 @@ func setEnvs(goArgs []string, cmd *exec.Cmd) {
 
 func buildCommandArgs(cfg Config, mainFile string) []string {
 	args := []string{"build"}
-	if cfg.Flags != "" {
-		parsedFlags := parseFlags(cfg.Flags)
-		args = append(args, parsedFlags...)
+	if len(cfg.Flags) > 0 {
+		// Sanitize and parse flags
+		for i := range cfg.Flags {
+			flag := strings.TrimSpace(cfg.Flags[i])
+			if !strings.HasPrefix(flag, "-") {
+				flag = "-" + flag
+			}
+			args = append(args, parseFlag(flag)...)
+		}
 	}
 	args = append(args, "-o", cfg.Output, mainFile)
 	return args
 }
 
+func appendCliArgs(cfg Config, args []string) []string {
+	for i := range cfg.Cli {
+		cli := strings.TrimSpace(cfg.Cli[i])
+		args = append(args, cli)
+	}
+	return args
+}
+
 func runCommandArgs(cfg Config, mainFile string) []string {
 	args := []string{"run"}
-	if cfg.Flags != "" {
-		parsedFlags := parseFlags(cfg.Flags)
-		args = append(args, parsedFlags...)
-	}
 	args = append(args, mainFile)
+	// Append CLI arguments if provided
+	args = appendCliArgs(cfg, args)
 	return args
 }
 
@@ -145,13 +163,7 @@ func startProcess(cfg Config, mainFile string) {
 
 	if runtime.NumCPU() >= 4 {
 		log.Println("Compiling binary...")
-		var buildOutput bytes.Buffer
-		stdoutMulti = io.MultiWriter(os.Stdout, &buildOutput)
-		stderrMulti = io.MultiWriter(os.Stderr, &buildOutput)
-		build := exec.Command("go", buildCommandArgs(cfg, mainFile)...)
-		build.Stdout = stdoutMulti
-		build.Stderr = stderrMulti
-		setEnvs(cfg.Args, build)
+		build, buildOutput := buildCommand(cfg, mainFile)
 		err := build.Run()
 		if err != nil {
 			log.Println("Build failed. Falling back to go run...")
@@ -160,14 +172,14 @@ func startProcess(cfg Config, mainFile string) {
 				log.Println("Detected unknown command error in build output. Stopping process.")
 				os.Exit(1)
 			}
-			cmd = runCommand("go", cfg.Args, runCommandArgs(cfg, mainFile)...)
+			cmd = executeCommand("go", cfg, runCommandArgs(cfg, mainFile)...)
 		} else {
 			log.Println("Build succeeded. Running binary...")
-			cmd = runCommand(cfg.Output, cfg.Args)
+			cmd = executeCommand(cfg.Output, cfg, appendCliArgs(cfg, []string{})...)
 		}
 	} else {
 		log.Println("Low CPU system. Running with go run...")
-		cmd = runCommand("go", cfg.Args, runCommandArgs(cfg, mainFile)...)
+		cmd = executeCommand("go", cfg, runCommandArgs(cfg, mainFile)...)
 	}
 }
 
@@ -177,8 +189,6 @@ func Start(cfg Config) {
 		log.Fatal(err)
 	}
 	defer watcher.Close()
-	exts := splitExts(cfg.Extensions)
-	ignores := splitExts(cfg.Ignore)
 	mainFile := cfg.MainFile
 	if mainFile == "" {
 		mainFile, err = findMain(cfg.Path)
@@ -186,7 +196,7 @@ func Start(cfg Config) {
 			log.Fatal("cannot locate main file:", err)
 		}
 	}
-	err = addWatchers(watcher, cfg.Path, ignores)
+	err = addWatchers(watcher, cfg.Path, cfg.Ignore)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -199,7 +209,7 @@ func Start(cfg Config) {
 			if !ok {
 				return
 			}
-			if isValidExt(event.Name, exts) && (event.Op&fsnotify.Write != 0 || event.Op&fsnotify.Create != 0 || event.Op&fsnotify.Remove != 0) {
+			if isValidExt(event.Name, cfg.Extensions) && (event.Op&fsnotify.Write != 0 || event.Op&fsnotify.Create != 0 || event.Op&fsnotify.Remove != 0) {
 				log.Println("File changed:", event.Name)
 				changed = true
 				if debouncerTimer != nil {
