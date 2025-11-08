@@ -87,7 +87,6 @@ func addWatchers(watcher *fsnotify.Watcher, root string, ignores []string) error
 }
 
 func executeCommand(name string, cfg Config, args ...string) *exec.Cmd {
-	fmt.Printf("Executing command: %s %s\n", name, strings.Join(args, " "))
 	c := exec.Command(name, args...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
