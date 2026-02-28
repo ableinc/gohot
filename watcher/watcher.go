@@ -26,6 +26,7 @@ type Config struct {
 	MainFile   string
 	Debounce   time.Duration
 	Envs       []string
+	EnvFile    string
 	Flags      []string
 	Cli        []string
 }
@@ -91,7 +92,7 @@ func executeCommand(name string, cfg Config, args ...string) *exec.Cmd {
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	c.Stdin = os.Stdin
-	setEnvs(cfg.Envs, c)
+	setEnvs(cfg.Envs, cfg.EnvFile, c)
 	err := c.Start()
 	if err != nil {
 		log.Fatalf("error starting command: %v", err)
@@ -107,7 +108,7 @@ func buildCommand(cfg Config, mainFile string) (*exec.Cmd, bytes.Buffer) {
 	build.Stdout = stdoutMulti
 	build.Stderr = stderrMulti
 	// Set environment variables at the build stage as well
-	setEnvs(cfg.Envs, build)
+	setEnvs(cfg.Envs, cfg.EnvFile, build)
 	return build, buildOutput
 }
 
@@ -120,8 +121,46 @@ func stopProcess() {
 	}
 }
 
-func setEnvs(goArgs []string, cmd *exec.Cmd) {
-	cmd.Env = append(os.Environ(), goArgs...)
+func loadEnvFile(path string) ([]string, error) {
+	if path == "" {
+		return []string{}, nil
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read env file: %w", err)
+	}
+
+	var envs []string
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		// Handle KEY=VALUE format
+		if strings.Contains(line, "=") {
+			envs = append(envs, line)
+		}
+	}
+	return envs, nil
+}
+
+func setEnvs(goArgs []string, envFile string, cmd *exec.Cmd) {
+	env := os.Environ()
+	// Load from env file first (so CLI envs can override)
+	if envFile != "" {
+		fileEnvs, err := loadEnvFile(envFile)
+		if err != nil {
+			log.Printf("Warning: failed to load env file: %v", err)
+		} else {
+			env = append(env, fileEnvs...)
+		}
+	}
+	// Then add CLI envs (these will override file envs if there are duplicates)
+	env = append(env, goArgs...)
+	cmd.Env = env
 }
 
 func buildCommandArgs(cfg Config, mainFile string) []string {

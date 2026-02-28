@@ -46,5 +46,12 @@ func ValidateConfig(cfg Config) error {
 		}
 	}
 
+	// Validate env file if provided
+	if cfg.EnvFile != "" {
+		if _, err := os.Stat(cfg.EnvFile); err != nil {
+			return fmt.Errorf("env file does not exist: %s", cfg.EnvFile)
+		}
+	}
+
 	return nil
 }

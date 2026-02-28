@@ -52,7 +52,8 @@ GLOBAL OPTIONS:
    --out value, -o value                                  Output binary name when compiling (default: "./appb")
    --entry value, -m value                                Main Go file entry point (default: "main.go")
    --debounce value, -d value                             Debounce time in milliseconds (default: 500)
-   --envs value, -v value [ --envs value, -v value ]      Environment variables to set before go build or go run )
+   --envs value, -v value [ --envs value, -v value ]      Environment variables to set before go build or go run
+   --env_file value, --env value                          Path to .env file to load environment variables from
    --flags value, -f value [ --flags value, -f value ]    Build flags to pass to go build
    --cli value, -c value [ --cli value, -c value ]        CLI arguments to pass to the compiled binary
    --help, -h                                             show help
@@ -74,6 +75,7 @@ out: ./appb
 debounce: 500
 envs:
   - GOEXPERIMENT=jsonv2
+env_file: .env
 flags:
   - ldflags="-w -s"
 cli:
@@ -111,6 +113,18 @@ gohot --entry ./main.go
 gohot --ext .go,.html,.env
 ```
 
+**Load environment variables from a .env file**
+```bash
+gohot --env_file .env
+# or use the short alias
+gohot --env .env
+```
+
+**Combine .env file with additional CLI environment variables (CLI envs override file)**
+```bash
+gohot --env_file .env --envs DEBUG=true
+```
+
 ## 🚨 Validation
 
 Before starting, gohot validates:
@@ -120,6 +134,8 @@ Before starting, gohot validates:
 - File extensions start with .
 
 - Main file (if set) exists and is a .go file
+
+- Env file (if set) exists
 
 - Debounce is positive
 

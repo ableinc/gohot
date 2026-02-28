@@ -25,13 +25,15 @@ entry: main.go
 debounce: 500
 envs:
  -
+env_file:
 flags:
  -
 cli:
  -
+
 `
 
-var APP_VERSION string = "1.0.0"
+var __VERSION__ string = "1.0.1"
 
 func loadConfigFile(readConfig bool) {
 	viper.SetConfigName("gohot")         // No extension
@@ -46,6 +48,7 @@ func loadConfigFile(readConfig bool) {
 	viper.SetDefault("entry", "main.go")
 	viper.SetDefault("debounce", 1000)
 	viper.SetDefault("envs", []string{""})
+	viper.SetDefault("env_file", "")
 	viper.SetDefault("flags", []string{""})
 	viper.SetDefault("cli", []string{""})
 	if !readConfig {
@@ -134,6 +137,12 @@ func main() {
 				Usage:   "Environment variables to set before go build or go run",
 				Value:   cli.NewStringSlice(viper.GetStringSlice("envs")...),
 			},
+			&cli.StringFlag{
+				Name:    "env_file",
+				Aliases: []string{"env"},
+				Usage:   "Path to .env file to load environment variables from",
+				Value:   viper.GetString("env_file"),
+			},
 			&cli.StringSliceFlag{
 				Name:    "flags",
 				Aliases: []string{"f"},
@@ -171,7 +180,7 @@ func main() {
 				Name:  "version",
 				Usage: "Print the version number",
 				Action: func(c *cli.Context) error {
-					fmt.Printf("gohot version %s\n", APP_VERSION)
+					fmt.Printf("gohot version %s\n", __VERSION__)
 					return nil
 				},
 			},
@@ -185,6 +194,7 @@ func main() {
 				MainFile:   c.String("entry"),
 				Debounce:   time.Duration(c.Int("debounce")) * time.Millisecond,
 				Envs:       c.StringSlice("envs"),
+				EnvFile:    c.String("env_file"),
 				Flags:      c.StringSlice("flags"),
 				Cli:        c.StringSlice("cli"),
 			}
