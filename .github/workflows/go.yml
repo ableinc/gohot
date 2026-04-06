@@ -74,13 +74,13 @@ jobs:
         run: make build
 
       - name: Verify binary exists
-        run: test -f bin/api-foundation-go
+        run: test -f build/gohot
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: api-foundation-go-linux-amd64
-          path: bin/api-foundation-go
+          name: gohot-linux-amd64
+          path: build/gohot
           retention-days: 1
           overwrite: true
 
