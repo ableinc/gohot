@@ -1,30 +1,110 @@
-name: CI for Go v1.24
+name: gohot CI
 
 on:
   push:
-    branches: [ "main", "develop", "release/*" ]
+    branches: [main]
   pull_request:
-    branches: [ "main", "develop", "release/*" ]
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  # Job for Go
-  go-job:
-    name: Test Go (v1.24)
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5
         with:
-          go-version: 1.24
+          go-version-file: go.mod
+          cache: true
 
-      - name: Install dependencies
-        run: go mod tidy
+      - name: Run go vet
+        run: make lint
 
-      - name: Run Go unit tests
-        run: go test ./watcher
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
 
-      - name: Run build
-        run: go build -ldflags="-w -s" -o gohot ./gohot.go
+      - name: Run staticcheck
+        run: make staticcheck
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        run: make test
+
+      - name: Run tests with coverage
+        run: make test-coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coverage-report
+          path: coverage.out
+          retention-days: 1
+          overwrite: true
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build binary
+        run: make build
+
+      - name: Verify binary exists
+        run: test -f bin/api-foundation-go
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: api-foundation-go-linux-amd64
+          path: bin/api-foundation-go
+          retention-days: 1
+          overwrite: true
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: make vulcheck
+
+      - name: Verify no committed secrets
+        run: |
+          if grep -rn "password\|secret\|api_key" --include="*.go" internal/ cmd/ | grep -iv "test\|example\|config\|error\|env\|hash\|validate\|missing\|invalid\|ErrMissing\|ErrInvalid"; then
+            echo "::warning::Potential hardcoded secrets found — review flagged lines"
+          fi
