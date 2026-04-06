@@ -138,6 +138,18 @@ vet:
 	@go vet ./...
 	@echo "$(GREEN)✓ Vet passed$(NC)"
 
+## staticcheck: Run staticcheck
+staticcheck:
+	@echo "$(CYAN)Running staticcheck...$(NC)"
+	staticcheck ./...
+	@echo "$(GREEN)✓ Staticcheck passed$(NC)"
+
+## vulcheck: Run vulnerability check
+vulcheck:
+	@echo "$(CYAN)Running vulnerability check...$(NC)"
+	@go list ./... | xargs govulncheck
+	@echo "$(GREEN)✓ Vulnerability check passed$(NC)"
+
 ## lint: Run golangci-lint (requires installation)
 lint:
 	@echo "$(CYAN)Running golangci-lint...$(NC)"
