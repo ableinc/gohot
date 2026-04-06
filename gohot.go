@@ -33,7 +33,7 @@ cli:
 
 `
 
-var __VERSION__ string = "1.0.1"
+var __VERSION__ string = "1.2.0"
 
 func loadConfigFile(readConfig bool) {
 	viper.SetConfigName("gohot")         // No extension
