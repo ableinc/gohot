@@ -4,7 +4,7 @@
 BINARY_NAME=gohot
 VERSION=$(shell grep 'var __VERSION__' gohot.go | sed 's/.*"\(.*\)".*/\1/')
 BUILD_DIR=build
-MAIN_FILE=gohot.go
+MAIN_FILE=.
 GO_FILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 # Build flags

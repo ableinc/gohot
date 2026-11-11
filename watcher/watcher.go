@@ -19,6 +19,7 @@ import (
 )
 
 type Config struct {
+	Name       string
 	Path       string
 	Extensions []string
 	Ignore     []string
@@ -169,6 +170,9 @@ func buildCommandArgs(cfg Config, mainFile string) []string {
 		// Sanitize and parse flags
 		for i := range cfg.Flags {
 			flag := strings.TrimSpace(cfg.Flags[i])
+			if flag == "" {
+				continue
+			}
 			if !strings.HasPrefix(flag, "-") {
 				flag = "-" + flag
 			}
@@ -182,6 +186,9 @@ func buildCommandArgs(cfg Config, mainFile string) []string {
 func appendCliArgs(cfg Config, args []string) []string {
 	for i := range cfg.Cli {
 		cli := strings.TrimSpace(cfg.Cli[i])
+		if cli == "" {
+			continue
+		}
 		args = append(args, cli)
 	}
 	return args
@@ -222,6 +229,9 @@ func startProcess(cfg Config, mainFile string) {
 }
 
 func Start(cfg Config) {
+	if cfg.Name != "" {
+		log.SetPrefix("[" + cfg.Name + "] ")
+	}
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
