@@ -108,15 +108,21 @@ test:
 	@echo "$(CYAN)Running tests...$(NC)"
 	go test -v ./...
 
+# Go's race detector needs a 48-bit virtual address space on arm64, which stock Raspberry Pi
+# kernels (39- or 47-bit) don't provide. $(RACE) is -race where the detector can run and
+# empty elsewhere, so the tests still run there, just without it. Checked once, on first use.
+RACE = $(eval RACE := $(shell d=$$(mktemp -d); printf 'package main\nfunc main() {}\n' > $$d/m.go; \
+	GOFLAGS= GOWORK=off go run -race $$d/m.go >/dev/null 2>&1 && echo -race; rm -rf $$d))$(if $(RACE),,$(info Race detector unavailable on this machine; running tests without -race.))$(RACE)
+
 ## test-verbose: Run tests with verbose output
 test-verbose:
 	@echo "$(CYAN)Running tests (verbose)...$(NC)"
-	go test -v -race ./...
+	go test -v $(RACE) ./...
 
 ## test-coverage: Run tests with coverage report
 test-coverage:
 	@echo "$(CYAN)Running tests with coverage...$(NC)"
-	go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+	go test -v $(RACE) -coverprofile=coverage.out -covermode=atomic ./...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "$(GREEN)✓ Coverage report: coverage.html$(NC)"
 	@go tool cover -func=coverage.out | grep total | awk '{print "Total coverage: " $$3}'
