@@ -10,8 +10,10 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint
+  ci:
+    name: Lint, test and build
+    # One job, so checkout, Go setup and the cache restore happen once instead
+    # of once per check.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -24,51 +26,27 @@ jobs:
       - name: Run go vet
         run: make lint
 
-      - name: Install staticcheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+      - name: Install staticcheck and govulncheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Run staticcheck
         run: make staticcheck
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    needs: lint
+      - name: Run govulncheck
+        run: make vulcheck
 
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Verify no committed secrets
+        run: |
+          if grep -rn "password\|secret\|api_key" --include="*.go" internal/ cmd/ | grep -iv "test\|example\|config\|error\|env\|hash\|validate\|missing\|invalid\|ErrMissing\|ErrInvalid"; then
+            echo "::warning::Potential hardcoded secrets found — review flagged lines"
+          fi
 
-      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run tests
-        run: make test
-
-      - name: Run tests with coverage
+      # make test-coverage runs the suite with the race detector, so it covers
+      # what a separate make test run would.
+      - name: Run tests with race detector
         run: make test-coverage
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        with:
-          name: coverage-report
-          path: coverage.out
-          retention-days: 1
-          overwrite: true
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5
-        with:
-          go-version-file: go.mod
-          cache: true
 
       - name: Build binary
         run: make build
@@ -83,28 +61,3 @@ jobs:
           path: build/gohot
           retention-days: 1
           overwrite: true
-
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: lint
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
-
-      - name: Run govulncheck
-        run: make vulcheck
-
-      - name: Verify no committed secrets
-        run: |
-          if grep -rn "password\|secret\|api_key" --include="*.go" internal/ cmd/ | grep -iv "test\|example\|config\|error\|env\|hash\|validate\|missing\|invalid\|ErrMissing\|ErrInvalid"; then
-            echo "::warning::Potential hardcoded secrets found — review flagged lines"
-          fi
